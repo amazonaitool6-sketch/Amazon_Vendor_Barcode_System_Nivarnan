@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Vendor Barcode System - Mithusha</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: monospace;
+            transition: border-color 0.3s;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .example {
+            background: #fff;
+            padding: 12px;
+            border-left: 3px solid #667eea;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #333;
+            white-space: pre-line;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button.print-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        button.pdf-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffe5e5;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .info {
+            color: #2ecc71;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f8f5;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .info.show {
+            display: block;
+        }
+
+        /* Print Layout */
+        #printArea {
+            display: none;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                display: none;
+            }
+
+            #printArea {
+                display: block !important;
+            }
+
+            .print-page {
+                width: 210mm;
+                height: 297mm;
+                padding: 10mm;
+                margin: 0;
+                background: white;
+                page-break-after: always;
+                position: relative;
+            }
+
+            .page-number {
+                position: absolute;
+                bottom: 4mm;
+                right: 6mm;
+                font-size: 14pt;
+                font-weight: 600;
+                font-family: Arial, sans-serif;
+                color: #555;
+            }
+
+            .print-page[data-format="german"] {
+                padding: 5mm;
+            }
+
+            .print-page:last-child {
+                page-break-after: auto;
+            }
+
+            .barcode-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(9, 1fr);
+                gap: 4mm;
+                width: 100%;
+                height: 100%;
+            }
+
+            .print-page[data-format="german"] .barcode-grid {
+                grid-template-rows: repeat(8, auto);
+                gap: 2mm;
+                height: auto;
+            }
+
+            .barcode-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border: 0.5pt dashed #ccc;
+                padding: 2mm;
+                page-break-inside: avoid;
+            }
+
+            .print-page[data-format="german"] .barcode-item {
+                padding: 1.5mm;
+            }
+
+            .label-title {
+                font-size: 13pt;
+                font-weight: normal;
+                margin-bottom: 0.3mm;
+                font-family: Arial, sans-serif;
+            }
+
+            .barcode-item svg {
+                width: 100%;
+                height: auto;
+                max-height: 20mm;
+            }
+
+            .print-page[data-format="german"] .barcode-item svg {
+                max-height: 18mm;
+            }
+
+            .barcode-text {
+                font-size: 9pt;
+                font-family: monospace;
+                margin-top: 1mm;
+                text-align: center;
+            }
+
+            .print-page[data-format="german"] .barcode-text {
+                font-size: 9pt;
+                margin-top: 0.5mm;
+            }
+
+            .print-page[data-format="german"] .label-title {
+                font-size: 12pt;
+                font-weight: bold;
+                margin-bottom: 0.5mm;
+            }
+        }
+
+        /* Preview */
+        .preview-area {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .preview-area.show {
+            display: block;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .preview-title {
+            font-weight: normal;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .preview-item svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .preview-text {
+            margin-top: 8px;
+            font-size: 13px;
+            font-family: monospace;
+            color: #666;
+        }
+
+        .preview-info {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ Amazon Vendor Barcode System - Mithusha</h1>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label>Select Barcode Format:</label>
+                <div style="display: flex; gap: 30px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="barcodeFormat" value="uk" checked onchange="updateFormatInfo()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">UK Barcode (3×9 labels per page)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="barcodeFormat" value="german" onchange="updateFormatInfo()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">German Barcode (3×8 labels, 70mm × 37.125mm)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Select Barcode Type:</label>
+                <div style="display: flex; gap: 30px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="barcodeType" value="ean13" checked onchange="updateBarcodeTypeInfo()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">EAN-13 (Numbers only, 12-13 digits)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="barcodeType" value="code128" onchange="updateBarcodeTypeInfo()" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600;">CODE128 / SKU (Text & Numbers)</span>
+                    </label>
+                </div>
+                <div id="formatInfo" style="font-size: 12px; color: #666; padding: 8px; background: #f0f0f0; border-radius: 5px; margin-bottom: 15px;">
+                    Current format: UK - 27 labels per A4 page | Barcode type: EAN-13
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="labelDate">Select Date (shown on barcode label):</label>
+                <input type="date" id="labelDate" style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; width: 220px; cursor: pointer;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#ddd'">
+                <div class="hint" style="margin-top: 5px;">Date will appear on each barcode label as: <strong>Description - DD.MM.YYYY</strong></div>
+            </div>
+            <div class="input-group">
+                <label for="labelData">Enter Barcode Data:</label>
+                <textarea 
+                    id="labelData" 
+                    placeholder="Enter each product on a new line..."
+                    oninput="updateCounter()"
+                ></textarea>
+                <div id="counterDisplay" style="margin-top: 8px; padding: 8px; background: #e8f4f8; border-radius: 5px; font-size: 13px; color: #2c3e50; font-weight: 600; display: none;">
+                    <span id="lineCount">Count: 0</span> &nbsp;&nbsp;|&nbsp;&nbsp; <span id="totalUnits">Units: 0</span>
+                </div>
+                <div class="hint">
+                    Format: Description | Code/EAN | Quantity OR use Tab/Space separated values
+                    <br>• EAN-13: Use 12-digit or 13-digit numbers (check digit auto-calculated if 12 digits)
+                    <br>• CODE128/SKU: Use any text/numbers combination (e.g., SKU-12345, PROD-ABC-001)
+                    <br>• Quantity is optional (default = 1)
+                    <br>• System By Nivarnan
+                </div>
+                <div class="example">
+Example (Tab or Pipe separated):
+
+EAN-13 Format:
+WH 01 5056756308797 2
+WH 01 5056756311599 1
+WH 02 5060998961931 3
+
+CODE128/SKU Format:
+WH 01 SKU 2
+WH 01 SKU 1
+WH 02 SKU 3</div>
+            </div>
+            
+            <div id="errorMsg" class="error"></div>
+            <div id="infoMsg" class="info"></div>
+            
+            <div class="button-group">
+                <button onclick="generateBarcodes()">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAABX0lEQVR4nO2UvUoDQRSFv00EQbCwsLGwsLGwUbCwsLGwEKwsLCwsLCwsLCwsLGwsLCwsLCwsLPwDBQsLC/EPiIWF+AOKhf/s3k0Cm1zIgwNzZ+bec+fODPzXA1SAGtAAmsANaAFtoAN0gR7QB/rAABgCI2AMTIApMAPmwAJYAitgBayBDbAFdsAeOABH4AScgQtwBW7AHXgAT+AJvIBX8AbewQf4BF/gG3yDH/ALRsAfGP+bYAxMgRmwAJbAClgDG2AL7IA9cACOwAk4AxfgCtyAO/AAnsATeAGv4A28gw/wCb7AN/gGP+AXjIA/MP43wRiYAjNgASyBFbAGNsAW2AF74AAcgRNwBi7AFbgBd+ABPIEn8AJewRt4Bx/gE3yBb/ANfsAvGAF/YPxvgjEwBWbAAlgCK2ANbIAtsAP2wAE4AifgDFyAK3AD7sADeAJP4AW8gjfwDj7AJ/gC3+Ab/IBf8AtGwR/4Bt/gB/yCX/ALRsEf+Abf4Af8gl/wC0bBH/gG3+AH/IJf8AtGwR/4Bt/gB/yCX/9X8AdsOWMZSVj+vgAAAABJRU5ErkJggg==" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; filter: brightness(0) invert(1);"> Generate Barcodes
+                </button>
+                <button class="print-btn" onclick="downloadImage()">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA8ElEQVR4nO2UPQrCQBCFvxTBwl6w8AhewMZCsLWwsPECHkE7wUoQbLyAjYWVhY2FYGMhWFiIhZWIhYX4A4qFP5vdJBDEQnzwYJjZeW9nZxZW/CcBHcACOANX4Aq8gB1QB0rAEngCb+AOXIA78AQewB7YAg2gCJSBFfAEXsANuAJP4A7sgS3QACpAFVgDT+D1P4E90ADqQBVYA0/gBVyBO/AE9sAWaABVoAasgSfwAq7AHXgCe2ALNIAKUAPWQBN4AVfgDjyBPbAFGkAFqAFroAk8gStwBx7AHtgCdaAC1IA10ASewBW4Aw9gD2yBOlAGKsAaaAIv4ArcgQewB7ZAHSgDZWANNIEXcP0b4ANs6kYZ9VGVVQAAAABJRU5ErkJggg==" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;"> Download PNG
+                </button>
+                <button class="pdf-btn" onclick="downloadPDF()">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAABjElEQVR4nO2Uv0oDQRDGv01AULCwsbGwsLGwUbCwsLGwEKwsLCwsLCwsLCwsLCwsLGwsLCwsLCwsLGwsLCwsLPwDBQsLC/EPiIWF+AOKhf/s7iYQ8U0gXnKQBx/MsrvfzOzO7QL/9QBqQB1oAE3gBrSANtABukAP6AN9YAAMgREwBsbABJgCM2AOLIAlsAJWwBrYAFtgB+yBA3AETsAZuABX4AbcgQfwBJ7AC3gFb+AdvIMPMAQ+wRf4Bt/gB/yCEfAHxv8mGANTYAYsgCWwAlbAGtgAW2AH7IEDcAROwBm4AFfgBtyBB/AEnsALeAVv4B18gCHwCb7AN/gGP+AXjIA/MP43wRiYAjNgASyBFbAC1sAG2AI7YA8cgCNwAs7ABbgCN+AOPIDH/yZ4As/gBbyCN/AO3sEH+ARf4Bt8gx/wC0bAH/gGP+AX/IJfMAL+wDf4Ab/gF/yCEfAHvsE3+AG/4Bf8glHwB77BN/gBv+AX/IJR8Ae+wTf4Ab/gF/yCUfAHvsE3+AG/4Nf/FfwBna1kGXFy1FEAAAAASUVORK5CYII=" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; filter: brightness(0) invert(1);"> Download PDF
+                </button>
+                <button style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);" onclick="clearAll()">
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAA7klEQVR4nO2UMQrCQBBFXxpBsLGxsbCwsVGwsLCxsBCsLCwsLCwsLCwsLGwsLCwsLCwsLPwDBQsLC/EPiIWF+AOKhT+7m0DEJYFsciEPPpjdnf/uzOwu8F8PoAE0gSbQAq5AC2gDHaAL9IA+MACGwAgYAxNgCsyAObAAlsAKWAMbYAvsgD1wAI7ACTgDF+AK3IA78ACewBN4Aa/gDbyCd/ABPsEX+Abf4Af8ghHwB8b/JhgDU2AGLIAlsALWwAbYAjtgDxyAI3ACzsAFuAI34A48gCfwBF7AK3gD7+ADfIIv8A2+wQ/4BSPgD4z/TTAGpsAMWABLYAWsgQ2wBXbAHjgAR+AEnIELcAVuwB14AE/gCbyAV/AG3sEH+ARf4Bt8gx/wC0bAH/gGP+AX/IJfMAL+wDf4Br/gF/yCUfAHvsE3+AW/4Bf8glHwB77BN/gFv+DX/xX8AWJgXhk9gYwfAAAAAElFTkSuQmCC" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; filter: brightness(0) invert(1);"> Clear All
+                </button>
+            </div>
+        </div>
+
+        <div id="previewArea" class="preview-area">
+            <h2 style="margin-bottom: 15px; color: #333;">Preview (First 6 Barcodes):</h2>
+            <div id="previewInfo" class="preview-info"></div>
+            <div id="previewGrid" class="preview-grid"></div>
+        </div>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script>
+        function calculateCheckDigit(code) {
+            const digits = code.split('').map(Number);
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += digits[i] * (i % 2 === 0 ? 1 : 3);
+            }
+            const check = (10 - (sum % 10)) % 10;
+            return check.toString();
+        }
+
+        function createCODE128SVG(text) {
+            const format = document.querySelector('input[name="barcodeFormat"]:checked').value;
+            const isGerman = format === 'german';
+            
+            // CODE128 encoding patterns
+            const CODE128 = {
+                'START_B': '11010010000',
+                'STOP': '1100011101011',
+                ' ': '11011001100', '!': '11001101100', '"': '11001100110', '#': '10010011000',
+                '$': '10010001100', '%': '10001001100', '&': '10011001000', "'": '10011000100',
+                '(': '10001100100', ')': '11001001000', '*': '11001000100', '+': '11000100100',
+                ',': '10110011100', '-': '10011011100', '.': '10011001110', '/': '10111001100',
+                '0': '10011101100', '1': '10011100110', '2': '11001110010', '3': '11001011100',
+                '4': '11001001110', '5': '11011100100', '6': '11001110100', '7': '11101101110',
+                '8': '11101001100', '9': '11100101100', ':': '11100100110', ';': '11101100100',
+                '<': '11100110100', '=': '11100110010', '>': '11011011000', '?': '11011000110',
+                '@': '11000110110', 'A': '10100011000', 'B': '10001011000', 'C': '10001000110',
+                'D': '10110001000', 'E': '10001101000', 'F': '10001100010', 'G': '11010001000',
+                'H': '11000101000', 'I': '11000100010', 'J': '10110111000', 'K': '10110001110',
+                'L': '10001101110', 'M': '10111011000', 'N': '10111000110', 'O': '10001110110',
+                'P': '11101110110', 'Q': '11010001110', 'R': '11000101110', 'S': '11011101000',
+                'T': '11011100010', 'U': '11011101110', 'V': '11101011000', 'W': '11101000110',
+                'X': '11100010110', 'Y': '11101101000', 'Z': '11101100010', '[': '11100011010',
+                '\\': '11101111010', ']': '11001000010', '^': '11110001010', '_': '10100110000',
+                '`': '10100001100', 'a': '10010110000', 'b': '10010000110', 'c': '10000101100',
+                'd': '10000100110', 'e': '10110010000', 'f': '10110000100', 'g': '10011010000',
+                'h': '10011000010', 'i': '10000110100', 'j': '10000110010', 'k': '11000010010',
+                'l': '11001010000', 'm': '11110111010', 'n': '11000010100', 'o': '10001111010',
+                'p': '10100111100', 'q': '10010111100', 'r': '10010011110', 's': '10111100100',
+                't': '10011110100', 'u': '10011110010', 'v': '11110100100', 'w': '11110010100',
+                'x': '11110010010', 'y': '11011011110', 'z': '11011110110', '{': '11110110110',
+                '|': '10101111000', '}': '10100011110', '~': '10001011110'
+            };
+
+            const CODE_VALUES = {
+                ' ': 0, '!': 1, '"': 2, '#': 3, '$': 4, '%': 5, '&': 6, "'": 7, '(': 8, ')': 9,
+                '*': 10, '+': 11, ',': 12, '-': 13, '.': 14, '/': 15, '0': 16, '1': 17, '2': 18,
+                '3': 19, '4': 20, '5': 21, '6': 22, '7': 23, '8': 24, '9': 25, ':': 26, ';': 27,
+                '<': 28, '=': 29, '>': 30, '?': 31, '@': 32, 'A': 33, 'B': 34, 'C': 35, 'D': 36,
+                'E': 37, 'F': 38, 'G': 39, 'H': 40, 'I': 41, 'J': 42, 'K': 43, 'L': 44, 'M': 45,
+                'N': 46, 'O': 47, 'P': 48, 'Q': 49, 'R': 50, 'S': 51, 'T': 52, 'U': 53, 'V': 54,
+                'W': 55, 'X': 56, 'Y': 57, 'Z': 58, '[': 59, '\\': 60, ']': 61, '^': 62, '_': 63,
+                '`': 64, 'a': 65, 'b': 66, 'c': 67, 'd': 68, 'e': 69, 'f': 70, 'g': 71, 'h': 72,
+                'i': 73, 'j': 74, 'k': 75, 'l': 76, 'm': 77, 'n': 78, 'o': 79, 'p': 80, 'q': 81,
+                'r': 82, 's': 83, 't': 84, 'u': 85, 'v': 86, 'w': 87, 'x': 88, 'y': 89, 'z': 90,
+                '{': 91, '|': 92, '}': 93, '~': 94
+            };
+
+            // Calculate checksum
+            let checksum = 104; // Start B value
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (CODE_VALUES[char] !== undefined) {
+                    checksum += CODE_VALUES[char] * (i + 1);
+                }
+            }
+            checksum = checksum % 103;
+
+            // Find checksum character
+            let checksumChar = ' ';
+            for (let char in CODE_VALUES) {
+                if (CODE_VALUES[char] === checksum) {
+                    checksumChar = char;
+                    break;
+                }
+            }
+
+            // Build barcode
+            let barcode = CODE128['START_B'];
+            for (let char of text) {
+                if (CODE128[char]) {
+                    barcode += CODE128[char];
+                }
+            }
+            barcode += CODE128[checksumChar];
+            barcode += CODE128['STOP'];
+
+            // Same SVG dimensions, only bar height reduces for German
+            const svgWidth = 250;
+            const svgHeight = 100;
+            const barHeight = isGerman ? 40 : 70;  // German bars are 40px instead of 70px
+            const barWidth = svgWidth / barcode.length;
+            const fontSize = 14;  // Same font size for all
+            const textY = 88;  // Same text position
+
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">`;
+            svg += `<rect width="${svgWidth}" height="${svgHeight}" fill="white"/>`;
+
+            let x = 0;
+            for (let i = 0; i < barcode.length; i++) {
+                if (barcode[i] === '1') {
+                    svg += `<rect x="${x}" y="0" width="${barWidth}" height="${barHeight}" fill="black"/>`;
+                }
+                x += barWidth;
+            }
+
+            svg += `<text x="${svgWidth/2}" y="${textY}" font-family="Arial, sans-serif" font-size="${fontSize}" text-anchor="middle" fill="black">${text}</text>`;
+            svg += '</svg>';
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svg, 'image/svg+xml');
+            return doc.documentElement;
+        }
+
+        function createBarcodeSVG(ean13) {
+            const format = document.querySelector('input[name="barcodeFormat"]:checked').value;
+            const isGerman = format === 'german';
+            
+            const L_CODES = {
+                '0': '0001101', '1': '0011001', '2': '0010011', '3': '0111101',
+                '4': '0100011', '5': '0110001', '6': '0101111', '7': '0111011',
+                '8': '0110111', '9': '0001011'
+            };
+
+            const G_CODES = {
+                '0': '0100111', '1': '0110011', '2': '0011011', '3': '0100001',
+                '4': '0011101', '5': '0111001', '6': '0000101', '7': '0010001',
+                '8': '0001001', '9': '0010111'
+            };
+
+            const R_CODES = {
+                '0': '1110010', '1': '1100110', '2': '1101100', '3': '1000010',
+                '4': '1011100', '5': '1001110', '6': '1010000', '7': '1000100',
+                '8': '1001000', '9': '1110100'
+            };
+
+            const FIRST_DIGIT_PATTERNS = {
+                '0': 'LLLLLL', '1': 'LLGLGG', '2': 'LLGGLG', '3': 'LLGGGL',
+                '4': 'LGLLGG', '5': 'LGGLLG', '6': 'LGGGLL', '7': 'LGLGLG',
+                '8': 'LGLGGL', '9': 'LGGLGL'
+            };
+
+            const firstDigit = ean13[0];
+            const pattern = FIRST_DIGIT_PATTERNS[firstDigit];
+
+            let barcode = '101';
+
+            for (let i = 0; i < 6; i++) {
+                const digit = ean13[i + 1];
+                if (pattern[i] === 'L') {
+                    barcode += L_CODES[digit];
+                } else {
+                    barcode += G_CODES[digit];
+                }
+            }
+
+            barcode += '01010';
+
+            for (let i = 0; i < 6; i++) {
+                const digit = ean13[i + 7];
+                barcode += R_CODES[digit];
+            }
+
+            barcode += '101';
+
+            // Same SVG dimensions, only bar height reduces for German
+            const svgWidth = 250;
+            const svgHeight = 100;
+            const barHeight = isGerman ? 40 : 70;  // German bars are 40px instead of 70px
+            const barWidth = svgWidth / barcode.length;
+            const fontSize = 16;  // Same font size for all
+            const textY = 88;  // Same text position
+
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">`;
+            svg += `<rect width="${svgWidth}" height="${svgHeight}" fill="white"/>`;
+
+            let x = 0;
+            for (let i = 0; i < barcode.length; i++) {
+                if (barcode[i] === '1') {
+                    svg += `<rect x="${x}" y="0" width="${barWidth}" height="${barHeight}" fill="black"/>`;
+                }
+                x += barWidth;
+            }
+
+            svg += `<text x="${svgWidth/2}" y="${textY}" font-family="Arial, sans-serif" font-size="${fontSize}" text-anchor="middle" fill="black">${ean13}</text>`;
+            svg += '</svg>';
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svg, 'image/svg+xml');
+            return doc.documentElement;
+        }
+
+        function updateBarcodeTypeInfo() {
+            updateFormatInfo();
+        }
+
+        function updateFormatInfo() {
+            const format = document.querySelector('input[name="barcodeFormat"]:checked').value;
+            const barcodeType = document.querySelector('input[name="barcodeType"]:checked').value;
+            const formatInfo = document.getElementById('formatInfo');
+            
+            let formatText = '';
+            if (format === 'uk') {
+                formatText = 'UK - 27 labels per A4 page (3 columns × 9 rows)';
+            } else {
+                formatText = 'German - 24 labels per A4 page (3 columns × 8 rows, 70mm × 37.125mm)';
+            }
+            
+            const typeText = barcodeType === 'ean13' ? 'EAN-13' : 'CODE128/SKU';
+            formatInfo.textContent = `Current format: ${formatText} | Barcode type: ${typeText}`;
+        }
+
+        function updateCounter() {
+            const input = document.getElementById('labelData').value.trim();
+            const counterDisplay = document.getElementById('counterDisplay');
+            const lineCountSpan = document.getElementById('lineCount');
+            const totalUnitsSpan = document.getElementById('totalUnits');
+            
+            if (!input) {
+                counterDisplay.style.display = 'none';
+                return;
+            }
+            
+            const lines = input.split('\n').filter(line => line.trim());
+            let totalUnits = 0;
+            
+            for (let line of lines) {
+                // Parse each line to get quantity
+                let parts;
+                if (line.includes('|')) {
+                    parts = line.split('|').map(p => p.trim());
+                } else if (line.includes('\t')) {
+                    parts = line.split('\t').map(p => p.trim()).filter(p => p);
+                } else {
+                    parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+                    if (parts.length < 2) {
+                        parts = line.split(/\s+/).map(p => p.trim()).filter(p => p);
+                    }
+                }
+                
+                // Check if last part is a number (quantity)
+                if (parts.length >= 2) {
+                    const lastPart = parts[parts.length - 1];
+                    const quantity = parseInt(lastPart);
+                    
+                    if (!isNaN(quantity) && quantity >= 1 && quantity <= 100) {
+                        totalUnits += quantity;
+                    } else {
+                        totalUnits += 1; // Default quantity is 1
+                    }
+                } else {
+                    totalUnits += 1;
+                }
+            }
+            
+            lineCountSpan.textContent = `Count: ${lines.length}`;
+            totalUnitsSpan.textContent = `Units: ${totalUnits}`;
+            counterDisplay.style.display = 'block';
+        }
+
+        function parseLabels(input) {
+            const lines = input.split('\n').filter(line => line.trim());
+            const labels = [];
+            const barcodeType = document.querySelector('input[name="barcodeType"]:checked').value;
+
+            for (let line of lines) {
+                // Support Tab, Pipe, or multiple spaces as separators
+                let parts;
+                if (line.includes('|')) {
+                    parts = line.split('|').map(p => p.trim());
+                } else if (line.includes('\t')) {
+                    parts = line.split('\t').map(p => p.trim()).filter(p => p);
+                } else {
+                    // Split by multiple spaces (2 or more)
+                    parts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+                    // If no multiple spaces, try single space
+                    if (parts.length < 2) {
+                        parts = line.split(/\s+/).map(p => p.trim()).filter(p => p);
+                    }
+                }
+                
+                if (parts.length < 2) {
+                    throw new Error(`Invalid format on line: "${line}"\nExpected at least: Description Code/EAN`);
+                }
+
+                let code, quantity, description;
+                
+                if (barcodeType === 'ean13') {
+                    // Find EAN (12-13 digit number) from the parts
+                    let eanIndex = -1;
+                    for (let i = parts.length - 1; i >= 0; i--) {
+                        if (/^\d{12,13}$/.test(parts[i].replace(/\s/g, ''))) {
+                            eanIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    if (eanIndex === -1) {
+                        throw new Error(`No valid EAN found on line: "${line}"\nEAN must be 12 or 13 digits`);
+                    }
+                    
+                    code = parts[eanIndex].replace(/\s/g, '');
+                    
+                    // Check if there's a quantity after EAN
+                    if (eanIndex < parts.length - 1) {
+                        const possibleQty = parseInt(parts[eanIndex + 1]);
+                        if (!isNaN(possibleQty) && possibleQty >= 1 && possibleQty <= 100) {
+                            quantity = possibleQty;
+                        } else {
+                            quantity = 1;
+                        }
+                    } else {
+                        quantity = 1;
+                    }
+                    
+                    // Everything before EAN is description
+                    description = parts.slice(0, eanIndex).join(' ');
+                    
+                    if (!description) {
+                        throw new Error(`No description found on line: "${line}"`);
+                    }
+
+                    if (!/^\d{12,13}$/.test(code)) {
+                        throw new Error(`Invalid EAN on line: "${line}"\nEAN must be 12 or 13 digits`);
+                    }
+
+                    let ean13;
+                    if (code.length === 12) {
+                        ean13 = code + calculateCheckDigit(code);
+                    } else {
+                        ean13 = code;
+                    }
+                    code = ean13;
+                } else {
+                    // CODE128 - second-to-last or last part is the code
+                    // Check if last part is a number (quantity)
+                    const lastPart = parts[parts.length - 1];
+                    const possibleQty = parseInt(lastPart);
+                    
+                    if (!isNaN(possibleQty) && possibleQty >= 1 && possibleQty <= 100 && lastPart === possibleQty.toString()) {
+                        // Last part is quantity
+                        quantity = possibleQty;
+                        code = parts[parts.length - 2];
+                        description = parts.slice(0, parts.length - 2).join(' ');
+                    } else {
+                        // No quantity, last part is code
+                        quantity = 1;
+                        code = parts[parts.length - 1];
+                        description = parts.slice(0, parts.length - 1).join(' ');
+                    }
+                    
+                    if (!description || !code) {
+                        throw new Error(`Invalid format on line: "${line}"`);
+                    }
+                }
+
+                // Add label multiple times based on quantity
+                for (let i = 0; i < quantity; i++) {
+                    labels.push({
+                        description: description,
+                        code: code,
+                        type: barcodeType
+                    });
+                }
+            }
+
+            return labels;
+        }
+
+        function generateBarcodes() {
+            const input = document.getElementById('labelData').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const infoMsg = document.getElementById('infoMsg');
+            const previewArea = document.getElementById('previewArea');
+            const previewGrid = document.getElementById('previewGrid');
+            const previewInfo = document.getElementById('previewInfo');
+            const format = document.querySelector('input[name="barcodeFormat"]:checked').value;
+            const labelsPerPage = format === 'uk' ? 27 : 24;
+            const rows = format === 'uk' ? 9 : 8;
+
+            errorMsg.classList.remove('show');
+            infoMsg.classList.remove('show');
+            previewArea.classList.remove('show');
+
+            if (!input) {
+                errorMsg.textContent = 'Please enter barcode data';
+                errorMsg.classList.add('show');
+                return;
+            }
+
+            let labels;
+            try {
+                labels = parseLabels(input);
+            } catch (e) {
+                errorMsg.textContent = e.message;
+                errorMsg.classList.add('show');
+                return;
+            }
+
+            const totalPages = Math.ceil(labels.length / labelsPerPage);
+            infoMsg.textContent = `✓ Total ${labels.length} barcodes will be generated across ${totalPages} page(s) (${format.toUpperCase()} format)`;
+            infoMsg.classList.add('show');
+
+            // Format date as DD.MM.YYYY
+            const dateInput = document.getElementById('labelDate').value;
+            let formattedDate = '';
+            if (dateInput) {
+                const [yyyy, mm, dd] = dateInput.split('-');
+                formattedDate = `${dd}.${mm}.${yyyy}`;
+            }
+
+            // Preview (first 6)
+            previewGrid.innerHTML = '';
+            const previewCount = Math.min(6, labels.length);
+            for (let i = 0; i < previewCount; i++) {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                
+                const title = document.createElement('div');
+                title.className = 'preview-title';
+                title.textContent = formattedDate ? `${labels[i].description} - ${formattedDate}` : labels[i].description;
+                item.appendChild(title);
+                
+                const svg = labels[i].type === 'ean13' ? createBarcodeSVG(labels[i].code) : createCODE128SVG(labels[i].code);
+                item.appendChild(svg);
+                
+                const text = document.createElement('div');
+                text.className = 'preview-text';
+                text.textContent = labels[i].code;
+                item.appendChild(text);
+                
+                previewGrid.appendChild(item);
+            }
+
+            // Prepare print area with multiple pages
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+            
+            for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+                const page = document.createElement('div');
+                page.className = 'print-page';
+                page.setAttribute('data-format', format);
+                
+                const grid = document.createElement('div');
+                grid.className = 'barcode-grid';
+                if (format === 'german') {
+                    grid.style.gridTemplateRows = 'repeat(8, 1fr)';
+                }
+                
+                const startIdx = pageNum * labelsPerPage;
+                const endIdx = Math.min(startIdx + labelsPerPage, labels.length);
+                
+                for (let i = startIdx; i < startIdx + labelsPerPage; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'barcode-item';
+                    
+                    if (i < endIdx) {
+                        const titleDiv = document.createElement('div');
+                        titleDiv.className = 'label-title';
+                        titleDiv.textContent = formattedDate ? `${labels[i].description} - ${formattedDate}` : labels[i].description;
+                        item.appendChild(titleDiv);
+                        
+                        const svg = labels[i].type === 'ean13' ? createBarcodeSVG(labels[i].code) : createCODE128SVG(labels[i].code);
+                        item.appendChild(svg);
+                        
+                        const text = document.createElement('div');
+                        text.className = 'barcode-text';
+                        text.textContent = labels[i].code;
+                        item.appendChild(text);
+                    } else {
+                        item.style.visibility = 'hidden';
+                    }
+                    
+                    grid.appendChild(item);
+                }
+                
+                page.appendChild(grid);
+
+                const pageNumberDiv = document.createElement('div');
+                pageNumberDiv.className = 'page-number';
+                pageNumberDiv.textContent = `${pageNum + 1} / ${totalPages}`;
+                page.appendChild(pageNumberDiv);
+
+                printArea.appendChild(page);
+            }
+
+            previewInfo.textContent = `✓ Ready to print ${labels.length} barcodes on ${totalPages} page(s) (${format.toUpperCase()} format)`;
+            previewArea.classList.add('show');
+        }
+
+        function clearAll() {
+            // Clear input
+            document.getElementById('labelData').value = '';
+            
+            // Clear date
+            document.getElementById('labelDate').value = '';
+            
+            // Clear counter
+            document.getElementById('counterDisplay').style.display = 'none';
+            
+            // Clear messages
+            document.getElementById('errorMsg').classList.remove('show');
+            document.getElementById('infoMsg').classList.remove('show');
+            
+            // Clear preview
+            document.getElementById('previewArea').classList.remove('show');
+            document.getElementById('previewGrid').innerHTML = '';
+            
+            // Clear print area
+            document.getElementById('printArea').innerHTML = '';
+        }
+
+        function printBarcodes() {
+            const printArea = document.getElementById('printArea');
+            if (!printArea.children.length) {
+                alert('Please generate barcodes first!');
+                return;
+            }
+            window.print();
+        }
+
+        async function downloadImage() {
+            const printArea = document.getElementById('printArea');
+            if (!printArea.children.length) {
+                alert('Please generate barcodes first!');
+                return;
+            }
+
+            const pages = printArea.querySelectorAll('.print-page');
+            
+            for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+                const format = pages[pageIdx].getAttribute('data-format') || 'uk';
+                const rows = format === 'uk' ? 9 : 8;
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const dpi = 350;
+                const a4Width = 8.27 * dpi;
+                const a4Height = 11.69 * dpi;
+                
+                canvas.width = a4Width;
+                canvas.height = a4Height;
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const padding = format === 'german' ? 0.2 * dpi : 0.4 * dpi;
+                const gap = format === 'german' ? 0.08 * dpi : 0.16 * dpi;
+                const cols = 3;
+                const cellWidth = (canvas.width - (2 * padding) - (gap * (cols - 1))) / cols;
+                const cellHeight = (canvas.height - (2 * padding) - (gap * (rows - 1))) / rows;
+                
+                const barcodeItems = pages[pageIdx].querySelectorAll('.barcode-item');
+                const promises = [];
+                
+                for (let i = 0; i < barcodeItems.length; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    const x = padding + (col * (cellWidth + gap));
+                    const y = padding + (row * (cellHeight + gap));
+                    
+                    const item = barcodeItems[i];
+                    if (item.style.visibility === 'hidden') continue;
+                    
+                    const title = item.querySelector('.label-title');
+                    const svg = item.querySelector('svg');
+                    
+                    if (svg) {
+                        const promise = new Promise((resolve) => {
+                            // Draw border
+                            ctx.strokeStyle = '#cccccc';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([6, 6]);
+                            ctx.strokeRect(x, y, cellWidth, cellHeight);
+                            ctx.setLineDash([]);
+                            
+                            // Draw title
+                            if (title) {
+                                ctx.fillStyle = '#000';
+                                const fontSize = format === 'german' ? 19 : 23;
+                                ctx.font = `normal ${fontSize}px Arial`;
+                                ctx.textAlign = 'center';
+                                const titleY = format === 'german' ? y + 35 : y + 55;
+                                ctx.fillText(title.textContent, x + cellWidth/2, titleY);
+                            }
+                            
+                            const svgData = new XMLSerializer().serializeToString(svg);
+                            const img = new Image();
+                            
+                            img.onload = function() {
+                                const scale = Math.min(
+                                    (cellWidth * 0.85) / img.width,
+                                    (cellHeight * 0.65) / img.height
+                                );
+                                const imgWidth = img.width * scale;
+                                const imgHeight = img.height * scale;
+                                const imgX = x + (cellWidth - imgWidth) / 2;
+                                const imgYOffset = format === 'german' ? 18 : 25;
+                                const imgY = y + (cellHeight - imgHeight) / 2 + imgYOffset;
+                                
+                                ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
+                                resolve();
+                            };
+                            
+                            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                        });
+                        promises.push(promise);
+                    }
+                }
+                
+                await Promise.all(promises);
+                
+                // Draw page number bottom-right corner
+                ctx.fillStyle = '#555555';
+                ctx.font = 'bold 26px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${pageIdx + 1} / ${pages.length}`, canvas.width - (0.2 * dpi), canvas.height - (0.15 * dpi));
+                
+                // Download as PNG
+                const link = document.createElement('a');
+                const date = new Date().toISOString().split('T')[0];
+                link.download = `barcodes-${format}-page-${pageIdx + 1}-${date}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        }
+
+        async function downloadPDF() {
+            const printArea = document.getElementById('printArea');
+            if (!printArea.children.length) {
+                alert('Please generate barcodes first!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+
+            const pages = printArea.querySelectorAll('.print-page');
+            
+            for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+                if (pageIdx > 0) {
+                    pdf.addPage();
+                }
+
+                const format = pages[pageIdx].getAttribute('data-format') || 'uk';
+                const rows = format === 'uk' ? 9 : 8;
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const dpi = 220;
+                const a4Width = 8.27 * dpi;
+                const a4Height = 11.69 * dpi;
+                
+                canvas.width = a4Width;
+                canvas.height = a4Height;
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Different padding and gap for German format - balanced spacing for short bars
+                const padding = format === 'german' ? 0.2 * dpi : 0.4 * dpi;
+                const gap = format === 'german' ? 0.08 * dpi : 0.16 * dpi;
+                const cols = 3;
+                const cellWidth = (canvas.width - (2 * padding) - (gap * (cols - 1))) / cols;
+                const cellHeight = (canvas.height - (2 * padding) - (gap * (rows - 1))) / rows;
+                
+                const barcodeItems = pages[pageIdx].querySelectorAll('.barcode-item');
+                const promises = [];
+                
+                for (let i = 0; i < barcodeItems.length; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    const x = padding + (col * (cellWidth + gap));
+                    const y = padding + (row * (cellHeight + gap));
+                    
+                    const item = barcodeItems[i];
+                    if (item.style.visibility === 'hidden') continue;
+                    
+                    const title = item.querySelector('.label-title');
+                    const svg = item.querySelector('svg');
+                    
+                    if (svg) {
+                        const promise = new Promise((resolve) => {
+                            // Draw border
+                            ctx.strokeStyle = '#cccccc';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([6, 6]);
+                            ctx.strokeRect(x, y, cellWidth, cellHeight);
+                            ctx.setLineDash([]);
+                            
+                            // Draw title
+                            if (title) {
+                                ctx.fillStyle = '#000';
+                                const fontSize = format === 'german' ? 19 : 23;
+                                ctx.font = `normal ${fontSize}px Arial`;
+                                ctx.textAlign = 'center';
+                                const titleY = format === 'german' ? y + 35 : y + 55;
+                                ctx.fillText(title.textContent, x + cellWidth/2, titleY);
+                            }
+                            
+                            const svgData = new XMLSerializer().serializeToString(svg);
+                            const img = new Image();
+                            
+                            img.onload = function() {
+                                const scale = Math.min(
+                                    (cellWidth * 0.85) / img.width,
+                                    (cellHeight * 0.65) / img.height
+                                );
+                                const imgWidth = img.width * scale;
+                                const imgHeight = img.height * scale;
+                                const imgX = x + (cellWidth - imgWidth) / 2;
+                                const imgYOffset = format === 'german' ? 18 : 25;
+                                const imgY = y + (cellHeight - imgHeight) / 2 + imgYOffset;
+                                
+                                ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
+                                resolve();
+                            };
+                            
+                            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                        });
+                        promises.push(promise);
+                    }
+                }
+                
+                await Promise.all(promises);
+                
+                // Draw page number bottom-right corner
+                ctx.fillStyle = '#555555';
+                ctx.font = 'bold 26px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${pageIdx + 1} / ${pages.length}`, canvas.width - (0.2 * dpi), canvas.height - (0.15 * dpi));
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.82);
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'SLOW');
+            }
+            
+            const date = new Date().toISOString().split('T')[0];
+            pdf.save(`barcodes-ean13-${date}.pdf`);
+        }
+    </script>
+</body>
+</html>
